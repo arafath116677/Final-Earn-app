@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin - Deposit Requests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      background: #f4f6f8;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    thead {
+      background-color: #007bff;
+      color: white;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    tr:hover {
+      background: #f0f8ff;
+    }
+
+    img {
+      max-width: 60px;
+      border-radius: 5px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    .badge {
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-weight: bold;
+      font-size: 13px;
+      text-transform: capitalize;
+    }
+
+    .badge.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .badge.approved {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge.rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .btn {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 2px;
+    }
+
+    .approve-btn {
+      background: #28a745;
+      color: white;
+    }
+
+    .reject-btn {
+      background: #dc3545;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 15px;
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+
+      td:last-child {
+        border-bottom: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2><i class="fas fa-money-check-alt"></i> Deposit Requests</h2>
+<div id="summaryBox" style="text-align: center; margin-bottom: 20px; font-size: 16px; color: #444;">
+  Total: <strong id="totalCount">0</strong> |
+  Pending: <strong id="pendingCount">0</strong> |
+  Approved: <strong id="approvedCount">0</strong> |
+  Rejected: <strong id="rejectedCount">0</strong>
+</div>
+  <table>
+    <thead>
+      <tr>
+        <th><i class="fas fa-envelope"></i> Email</th>
+        <th><i class="fas fa-coins"></i> Amount</th>
+        <th><i class="fas fa-credit-card"></i> Method</th>
+        <th><i class="fas fa-receipt"></i> Transaction ID</th>
+        <th><i class="fas fa-phone-alt"></i> Phone</th>
+        <th><i class="fas fa-image"></i> Screenshot</th>
+        <th><i class="fas fa-info-circle"></i> Status</th>
+        <th><i class="fas fa-clock"></i> Time</th>
+        <th><i class="fas fa-cogs"></i> Actions</th>
+      </tr>
+    </thead>
+    <tbody id="depositTable"></tbody>
+  </table>
+
+<script>
+  async function fetchDeposits() {
+    const res = await fetch('/admin/deposit-requests');
+    const deposits = await res.json();
+    const table = document.getElementById('depositTable');
+    table.innerHTML = '';
+
+    // 🧮 Count status
+    let pending = 0, approved = 0, rejected = 0;
+    deposits.forEach(d => {
+      if (d.status === 'pending') pending++;
+      else if (d.status === 'approved') approved++;
+      else if (d.status === 'rejected') rejected++;
+    });
+
+    // 🔢 Update summary box
+    document.getElementById('totalCount').innerText = deposits.length;
+    document.getElementById('pendingCount').innerText = pending;
+    document.getElementById('approvedCount').innerText = approved;
+    document.getElementById('rejectedCount').innerText = rejected;
+
+    // 🧾 Render table
+    deposits.forEach(d => {
+      const date = new Date(d.createdAt).toLocaleString();
+      const img = d.screenshotUrl
+        ? `<a href="/uploads/${d.screenshotUrl}" target="_blank"><img src="/uploads/${d.screenshotUrl}" alt="screenshot" /></a>`
+        : 'No image';
+      const userEmail = d.userId?.email || 'Unknown';
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${userEmail}</td>
+        <td>${d.amount} ৳</td>
+        <td>${d.method}</td>
+        <td>${d.transactionId}</td>
+        <td>${d.phone}</td>
+        <td>${img}</td>
+        <td><span class="badge ${d.status}">${d.status}</span></td>
+        <td>${date}</td>
+        <td>
+          ${d.status === 'pending' ? `
+            <button class="btn approve-btn" onclick="approve('${d._id}')"><i class="fas fa-check"></i> Approve</button>
+            <button class="btn reject-btn" onclick="reject('${d._id}')"><i class="fas fa-times"></i> Reject</button>
+          ` : '—'}
+        </td>
+      `;
+      table.appendChild(row);
+    });
+  }
+
+  async function approve(id) {
+    const res = await fetch(`/admin/deposit/approve/${id}`, { method: 'POST' });
+    if (res.ok) fetchDeposits();
+  }
+
+  async function reject(id) {
+    const res = await fetch(`/admin/deposit/reject/${id}`, { method: 'POST' });
+    if (res.ok) fetchDeposits();
+  }
+
+  fetchDeposits();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🎁 Bonus Code Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+    }
+
+    .box {
+      max-width: 550px;
+      margin: auto;
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #007bff;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      width: 48%;
+      padding: 10px;
+      margin: 10px 1%;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .activate-btn {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .deactivate-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    #res {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .res-success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .res-error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background-color: #e7f3ff;
+      color: #007bff;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    @media (max-width: 500px) {
+      button {
+        width: 100%;
+        margin: 8px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2><i class="fas fa-gift"></i> Bonus Code Management</h2>
+    
+    <input type="text" id="code" placeholder="Enter code (e.g. BONUS2025)" />
+    <input type="number" id="reward" placeholder="Reward Amount (৳)" />
+
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+      <button class="activate-btn" onclick="activateCode()"><i class="fas fa-check-circle"></i> Activate</button>
+      <button class="deactivate-btn" onclick="deactivateCode()"><i class="fas fa-times-circle"></i> Deactivate</button>
+    </div>
+
+    <div id="res"></div>
+
+    <h3 style="margin-top: 30px;">🟢 Active Bonus Codes</h3>
+    <table id="activeCodesTable">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Reward</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function activateCode() {
+      const code = document.getElementById('code').value.trim();
+      const reward = document.getElementById('reward').value;
+      const resEl = document.getElementById('res');
+
+      if (!code || !reward) {
+        showMessage('Code and reward required!', false);
+        return;
+      }
+
+      const res = await fetch('/admin/bonus-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, reward })
+      });
+
+      const msg = await res.text();
+      showMessage(msg, res.ok);
+      loadActiveCodes();
+    }
+
+    async function deactivateCode() {
+      const code = document.getElementById('code').value.trim();
+      const res = await fetch('/admin/bonus-code/deactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      const msg = await res.text();
+      showMessage(msg, res.ok);
+      loadActiveCodes();
+    }
+
+    function showMessage(message, isSuccess = true) {
+      const el = document.getElementById('res');
+      el.innerText = message;
+      el.className = isSuccess ? 'res-success' : 'res-error';
+    }
+
+    async function loadActiveCodes() {
+      const res = await fetch('/admin/bonus-code/active');
+      const codes = await res.json();
+      const tbody = document.querySelector('#activeCodesTable tbody');
+      tbody.innerHTML = '';
+
+      codes.forEach(code => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="badge">${code.code}</span></td>
+          <td>৳${code.reward}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Load codes on page load
+    loadActiveCodes();
+  </script>
+</body>
+</html>

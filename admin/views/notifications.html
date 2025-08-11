@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Send & Manage Notifications</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background-color: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .form-group label {
+      font-weight: 600;
+      color: #374151;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      background-color: #f9fafb;
+      transition: all 0.2s ease-in-out;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 1rem;
+      font-weight: 600;
+      color: white;
+      background: linear-gradient(to right, #22c55e, #16a34a);
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(to right, #16a34a, #15803d);
+      transform: translateY(-1px);
+    }
+    .btn-primary:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .message-box {
+        padding: 1rem;
+        margin-top: 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-align: center;
+    }
+    .message-success {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    .message-error {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hidden {
+      display: none;
+    }
+    /* নতুন স্টাইল: নোটিফিকেশন তালিকা এবং ডিলিট বাটনের জন্য */
+    #notification-list-container {
+        margin-top: 3rem;
+    }
+    .notification-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+    }
+    .notification-content {
+        flex-grow: 1;
+    }
+    .notification-title {
+        font-weight: 600;
+        color: #111827;
+    }
+    .notification-message {
+        font-size: 0.875rem;
+        color: #4b5563;
+        margin-top: 0.25rem;
+    }
+    .notification-date {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+    }
+    .delete-btn {
+        background-color: #ef4444;
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin-left: 1rem;
+    }
+    .delete-btn:hover {
+        background-color: #dc2626;
+    }
+
+    /* কাস্টম পপ-আপের স্টাইল */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+      animation: fadeIn 0.3s;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background-color: #fefefe;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 400px;
+      box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+      animation: slideIn 0.3s;
+      text-align: center;
+    }
+    .modal-content h3 {
+        font-size: 1.25rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1rem;
+    }
+    .modal-buttons {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 1.5rem;
+    }
+    .modal-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .modal-btn-confirm {
+        background-color: #ef4444;
+        color: white;
+    }
+    .modal-btn-cancel {
+        background-color: #e5e7eb;
+        color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">নোটিফিকেশন পাঠান</h2>
+    <p class="text-center text-gray-600 mb-8">সকল ব্যবহারকারীর কাছে একটি নতুন নোটিফিকেশন পাঠান।</p>
+
+    <form id="notificationForm">
+      <div class="form-group mb-4">
+        <label for="title" class="block text-sm">শিরোনাম</label>
+        <input type="text" id="title" name="title" placeholder="যেমন: নতুন প্যাকেজ ঘোষণা" required>
+      </div>
+
+      <div class="form-group mb-6">
+        <label for="message" class="block text-sm">বার্তা</label>
+        <textarea id="message" name="message" rows="5" placeholder="বিস্তারিত বার্তা..." required></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-primary">
+        <span id="btnText">নোটিফিকেশন পাঠান</span>
+        <span id="loadingSpinner" class="spinner hidden mx-auto"></span>
+      </button>
+    </form>
+    
+    <div id="responseMessage" class="hidden message-box"></div>
+  </div>
+
+  <div class="container" id="notification-list-container">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">বিদ্যমান নোটিফিকেশন</h2>
+    <div id="notifications-status" class="text-center text-gray-500">
+      <!-- লোডিং স্পিনার বা বার্তা এখানে দেখাবে -->
+    </div>
+    <div id="notifications-list">
+      <!-- নোটিফিকেশনগুলো এখানে জাভাস্ক্রিপ্টের মাধ্যমে লোড হবে -->
+    </div>
+  </div>
+  
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <h3 class="text-red-600">আপনি কি নিশ্চিত?</h3>
+      <p>আপনি কি এই নোটিফিকেশনটি মুছে ফেলতে চান? এই কাজটি অপরিবর্তনীয়।</p>
+      <div class="modal-buttons">
+        <button id="confirmDeleteBtn" class="modal-btn modal-btn-confirm">মুছে ফেলুন</button>
+        <button id="cancelDeleteBtn" class="modal-btn modal-btn-cancel">বাতিল করুন</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const notificationList = document.getElementById('notifications-list');
+    const notificationsStatus = document.getElementById('notifications-status');
+    const deleteModal = document.getElementById('deleteModal');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    let notificationToDeleteId = null;
+
+    async function loadNotifications() {
+      notificationsStatus.innerHTML = '<div class="spinner mx-auto"></div>';
+      notificationsStatus.classList.remove('hidden');
+      notificationList.innerHTML = '';
+
+      try {
+        const res = await fetch('/api/admin/notifications');
+        
+        if (!res.ok) {
+          throw new Error(`সার্ভার ত্রুটি: ${res.status}`);
+        }
+        
+        const notifications = await res.json();
+        
+        notificationsStatus.classList.add('hidden');
+
+        if (notifications.length === 0) {
+          notificationsStatus.innerHTML = '<p>কোনো নোটিফিকেশন পাওয়া যায়নি।</p>';
+          notificationsStatus.classList.remove('hidden');
+        } else {
+          notifications.forEach(note => {
+            const date = new Date(note.createdAt).toLocaleString('bn-BD', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: 'numeric'
+            });
+            const notificationItem = `
+              <div class="notification-item">
+                <div class="notification-content">
+                  <div class="notification-title">${note.title}</div>
+                  <div class="notification-message">${note.message}</div>
+                  <div class="notification-date">${date}</div>
+                </div>
+                <button class="delete-btn" data-id="${note._id}">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </div>
+            `;
+            notificationList.innerHTML += notificationItem;
+          });
+        }
+      } catch (err) {
+        console.error('Error loading notifications:', err);
+        notificationsStatus.innerHTML = `<p class="text-red-500">নোটিফিকেশন লোড করতে ব্যর্থ। একটি ত্রুটি ঘটেছে: ${err.message}</p>`;
+        notificationsStatus.classList.remove('hidden');
+      }
+    }
+
+    async function deleteNotification(id) {
+      try {
+        const res = await fetch(`/api/admin/notifications/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (res.ok) {
+          showResponse('নোটিফিকেশন সফলভাবে মুছে ফেলা হয়েছে।', 'success');
+          loadNotifications();
+        } else {
+          const data = await res.json();
+          showResponse(data.message || 'নোটিফিকেশন মুছতে ব্যর্থ হয়েছে।', 'error');
+        }
+      } catch (err) {
+        console.error('Error deleting notification:', err);
+        showResponse('একটি নেটওয়ার্ক ত্রুটি ঘটেছে। দয়া করে আবার চেষ্টা করুন।', 'error');
+      }
+    }
+
+    function showResponse(message, type) {
+      const responseMessage = document.getElementById('responseMessage');
+      responseMessage.innerText = message;
+      responseMessage.classList.remove('hidden', 'message-success', 'message-error');
+      if (type === 'success') {
+        responseMessage.classList.add('message-success');
+      } else {
+        responseMessage.classList.add('message-error');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('notificationForm');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      const responseMessage = document.getElementById('responseMessage');
+
+      loadNotifications();
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = document.getElementById('title').value;
+        const message = document.getElementById('message').value;
+
+        responseMessage.classList.add('hidden');
+        responseMessage.classList.remove('message-success', 'message-error');
+        submitBtn.disabled = true;
+        btnText.classList.add('hidden');
+        loadingSpinner.classList.remove('hidden');
+
+        try {
+          const res = await fetch('/api/admin/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, message })
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            form.reset();
+            showResponse(data.message, 'success');
+            loadNotifications();
+          } else {
+            showResponse(data.message || 'নোটিফিকেশন পাঠাতে ব্যর্থ হয়েছে।', 'error');
+          }
+        } catch (err) {
+          console.error('Error submitting notification:', err);
+          showResponse('একটি নেটওয়ার্ক ত্রুটি ঘটেছে। দয়া করে আবার চেষ্টা করুন।', 'error');
+        } finally {
+          submitBtn.disabled = false;
+          btnText.classList.remove('hidden');
+          loadingSpinner.classList.add('hidden');
+        }
+      });
+      
+      notificationList.addEventListener('click', (e) => {
+        if (e.target.closest('.delete-btn')) {
+          notificationToDeleteId = e.target.closest('.delete-btn').dataset.id;
+          deleteModal.style.display = 'flex';
+        }
+      });
+
+      confirmDeleteBtn.addEventListener('click', () => {
+        if (notificationToDeleteId) {
+          deleteModal.style.display = 'none';
+          deleteNotification(notificationToDeleteId);
+          notificationToDeleteId = null;
+        }
+      });
+
+      cancelDeleteBtn.addEventListener('click', () => {
+        deleteModal.style.display = 'none';
+        notificationToDeleteId = null;
+      });
+
+      window.addEventListener('click', (e) => {
+        if (e.target === deleteModal) {
+          deleteModal.style.display = 'none';
+          notificationToDeleteId = null;
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!-- views/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .dashboard-header {
+      background-color: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .dashboard-main {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .card {
+      background-color: #f0f0f0;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s ease;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .card:hover {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .support-card:hover {
+      background-color: #22c55e;
+      color: white;
+    }
+
+    .logout {
+      background-color: #ff4d4d;
+      color: white;
+    }
+
+    .logout:hover {
+      background-color: #ff1a1a;
+    }
+  </style>
+</head>
+<body>
+  <header class="dashboard-header">
+    <h1><i class="fas fa-chart-line"></i> Admin Dashboard</h1>
+  </header>
+
+  <main class="dashboard-main">
+    <div class="card" onclick="location.href='/users.html'">
+      <i class="fas fa-users"></i><br>View Users
+    </div>
+    <div class="card" onclick="location.href='/deposit_requests.html'">
+      <i class="fas fa-wallet"></i><br>Deposit Requests
+    </div>
+    <div class="card" onclick="location.href='/withdraw_requests.html'">
+      <i class="fas fa-hand-holding-usd"></i><br>Withdraw Requests
+    </div>
+    <div class="card" onclick="location.href='/bonus-code.html'">
+      <i class="fas fa-gift"></i><br>Bonus Code
+    </div>
+    <!-- New Support Card -->
+    <div class="card support-card" onclick="location.href='/support.html'">
+      <i class="fas fa-headset"></i><br>Support Tickets
+    </div>
+    <div class="card" onclick="location.href='/notifications.html'">
+      <i class="fas fa-bell"></i><br>Notification
+    </div>
+    <div class="card logout" onclick="logout()">
+      <i class="fas fa-sign-out-alt"></i><br>Logout
+    </div>
+  </main>
+
+  <script>
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
+

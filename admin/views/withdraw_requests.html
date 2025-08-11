@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Withdraw Requests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    #summaryBox {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 16px;
+      color: #444;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: #007bff;
+      color: white;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+      background: #f1f9ff;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 2px;
+    }
+
+    .approve-btn {
+      background: #28a745;
+      color: white;
+    }
+
+    .reject-btn {
+      background: #dc3545;
+      color: white;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      font-size: 13px;
+      border-radius: 20px;
+      font-weight: bold;
+      display: inline-block;
+      text-transform: capitalize;
+    }
+
+    .badge.pending {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .badge.approved {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .badge.rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 15px;
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+
+      td:last-child {
+        border-bottom: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h2><i class="fas fa-hand-holding-usd"></i> Withdraw Requests</h2>
+
+  <!-- Summary Box -->
+  <div id="summaryBox">
+    Total: <strong id="totalCount">0</strong> |
+    Pending: <strong id="pendingCount">0</strong> |
+    Approved: <strong id="approvedCount">0</strong> |
+    Rejected: <strong id="rejectedCount">0</strong>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th><i class="fas fa-envelope"></i> Email</th>
+        <th><i class="fas fa-coins"></i> Amount</th>
+        <th><i class="fas fa-phone-alt"></i> Number</th>
+        <th><i class="fas fa-credit-card"></i> Method</th>
+        <th><i class="fas fa-info-circle"></i> Status</th>
+        <th><i class="fas fa-clock"></i> Time</th>
+        <th><i class="fas fa-cogs"></i> Action</th>
+      </tr>
+    </thead>
+    <tbody id="withdrawTable"></tbody>
+  </table>
+
+  <script>
+    async function loadWithdraws() {
+      const res = await fetch('/admin/withdraw/requests');
+      const data = await res.json();
+      const tbody = document.getElementById('withdrawTable');
+      tbody.innerHTML = '';
+
+      let pending = 0, approved = 0, rejected = 0;
+
+      data.forEach(req => {
+        const time = new Date(req.createdAt).toLocaleString();
+        const status = req.status || 'pending';
+
+        if (status === 'pending') pending++;
+        else if (status === 'approved') approved++;
+        else if (status === 'rejected') rejected++;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${req.userId?.email || 'N/A'}</td>
+          <td>${req.amount} ৳</td>
+          <td>${req.number}</td>
+          <td>${req.method}</td>
+          <td><span class="badge ${status}">${status}</span></td>
+          <td>${time}</td>
+          <td>
+            ${status === 'pending' ? `
+              <button class="btn approve-btn" onclick="approve('${req._id}')">
+                <i class="fas fa-check"></i> Approve
+              </button>
+              <button class="btn reject-btn" onclick="reject('${req._id}')">
+                <i class="fas fa-times"></i> Reject
+              </button>
+            ` : '—'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update counts
+      document.getElementById('totalCount').innerText = data.length;
+      document.getElementById('pendingCount').innerText = pending;
+      document.getElementById('approvedCount').innerText = approved;
+      document.getElementById('rejectedCount').innerText = rejected;
+    }
+
+    async function approve(id) {
+      const res = await fetch('/admin/withdraw/approve/' + id, { method: 'POST' });
+      if (res.ok) loadWithdraws();
+    }
+
+    async function reject(id) {
+      const res = await fetch('/admin/withdraw/reject/' + id, { method: 'POST' });
+      if (res.ok) loadWithdraws();
+    }
+
+    // Load on page start
+    loadWithdraws();
+  </script>
+</body>
+</html>

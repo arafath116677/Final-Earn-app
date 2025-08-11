@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Support Tickets</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 95%; /* Adjusting for better mobile viewing */
+      margin: 2rem auto;
+      padding: 1rem; /* Adjusting padding for smaller screens */
+      background-color: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .ticket-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    .ticket-table th, .ticket-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .ticket-table th {
+      background-color: #f9fafb;
+      font-weight: 600;
+      color: #1f2937;
+      text-transform: uppercase;
+      font-size: 0.875rem;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+    }
+    .status-open { background-color: #f87171; } /* red-400 */
+    .status-in-progress { background-color: #fbbf24; } /* yellow-400 */
+    .status-closed { background-color: #34d399; } /* green-400 */
+    .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100px;
+    }
+    .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #22c55e;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .hidden {
+      display: none;
+    }
+    .ticket-row {
+      cursor: pointer;
+    }
+    .ticket-message {
+      background-color: #eef2f5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-top: 0.5rem;
+      color: #4b5563;
+      font-style: italic;
+    }
+
+    /* Responsive styles for smaller screens */
+    @media (max-width: 768px) {
+      .ticket-table thead {
+        display: none; /* Hide table headers on small screens */
+      }
+      .ticket-table, .ticket-table tbody, .ticket-table tr, .ticket-table td {
+        display: block;
+        width: 100%;
+      }
+      .ticket-table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        background-color: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+      .ticket-table td {
+        border: none;
+        position: relative;
+        padding-left: 50%; /* Make space for pseudo-element header */
+        text-align: right; /* Align content to the right */
+      }
+      .ticket-table td:last-child {
+        border-bottom: 1px solid #e5e7eb;
+      }
+      /* Add a header to each cell using pseudo-elements */
+      .ticket-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        width: calc(50% - 2rem);
+        padding-right: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        text-align: left;
+      }
+
+      /* Specific adjustments for ticket row content */
+      td:nth-of-type(1)::before { content: "তারিখ"; }
+      td:nth-of-type(2)::before { content: "ইউজার"; }
+      td:nth-of-type(3)::before { content: "ইমেইল"; }
+      td:nth-of-type(4)::before { content: "বিষয়"; }
+      td:nth-of-type(5)::before { content: "অবস্থা"; }
+
+      .ticket-message {
+        text-align: left; /* Align message text to the left */
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">সাপোর্ট টিকিট</h2>
+    <div id="ticketsContainer">
+      <div id="loading" class="loading-container">
+        <div class="spinner"></div> <span class="ml-2 text-gray-500">টিকিট লোড হচ্ছে...</span>
+      </div>
+      <div id="noTickets" class="text-center text-gray-500 my-4 hidden">
+        এখনও কোনো সাপোর্ট টিকিট জমা পড়েনি।
+      </div>
+      <table class="ticket-table hidden" id="ticketTable">
+        <thead>
+          <tr>
+            <th>তারিখ</th>
+            <th>ইউজার</th>
+            <th>ইমেইল</th>
+            <th>বিষয়</th>
+            <th>অবস্থা</th>
+          </tr>
+        </thead>
+        <tbody id="ticketsTableBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const ticketsTableBody = document.getElementById('ticketsTableBody');
+      const loadingDiv = document.getElementById('loading');
+      const noTicketsDiv = document.getElementById('noTickets');
+      const ticketTable = document.getElementById('ticketTable');
+
+      try {
+        const res = await fetch('/admin/support/tickets', {
+          method: 'GET'
+        });
+
+        const data = await res.json();
+        loadingDiv.classList.add('hidden');
+
+        if (!res.ok) {
+            noTicketsDiv.innerText = data.message || 'টিকিট লোড করতে ব্যর্থ হয়েছে।';
+            noTicketsDiv.classList.remove('hidden');
+            return;
+        }
+
+        if (data.tickets.length > 0) {
+          ticketTable.classList.remove('hidden');
+          ticketsTableBody.innerHTML = '';
+
+          data.tickets.forEach(ticket => {
+            const date = new Date(ticket.createdAt).toLocaleDateString('bn-BD');
+            const statusClass = `status-${ticket.status}`;
+
+            const row = document.createElement('tr');
+            row.classList.add('ticket-row');
+            // Adding data-label attributes for responsive design
+            row.innerHTML = `
+              <td data-label="তারিখ">${date}</td>
+              <td data-label="ইউজার">${ticket.userId ? ticket.userId.name : 'N/A'}</td>
+              <td data-label="ইমেইল">${ticket.userId ? ticket.userId.email : 'N/A'}</td>
+              <td data-label="বিষয়">
+                <span class="font-semibold">${ticket.subject}</span>
+                <div class="ticket-message hidden mt-2">${ticket.message}</div>
+              </td>
+              <td data-label="অবস্থা"><span class="status-badge ${statusClass}">${ticket.status}</span></td>
+            `;
+            ticketsTableBody.appendChild(row);
+
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.ticket-message')) {
+                    return;
+                }
+                const messageDiv = row.querySelector('.ticket-message');
+                messageDiv.classList.toggle('hidden');
+            });
+          });
+        } else {
+          noTicketsDiv.classList.remove('hidden');
+        }
+
+      } catch (err) {
+        console.error("Error fetching tickets:", err);
+        loadingDiv.classList.add('hidden');
+        noTicketsDiv.innerText = 'সার্ভার থেকে ডেটা আনতে সমস্যা হয়েছে।';
+        noTicketsDiv.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
+
